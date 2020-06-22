@@ -61,7 +61,7 @@ class Parser {
 	}
 
 	private Stmt forStatement() {
-		consume(LEFT_PAREN, "Expected '(' after 'for'.");
+		consume(LEFT_PAREN, "Expect '(' after 'for'.");
 
 		Stmt initializer;
 		if (match(SEMICOLON)) {
@@ -76,13 +76,13 @@ class Parser {
 		if (!check(SEMICOLON)) {
 			condition = expression();
 		}
-		consume(SEMICOLON, "Expected ';' after loop condition.");
+		consume(SEMICOLON, "Expect ';' after loop condition.");
 
 		Expr increment = null;
 		if (!check(RIGHT_PAREN)) {
 			increment = expression();
 		}
-		consume(RIGHT_PAREN, "Expected ')' after for clauses.");
+		consume(RIGHT_PAREN, "Expect ')' after for clauses.");
 
 		Stmt body = statement();
 
@@ -103,9 +103,9 @@ class Parser {
 	}
 
 	private Stmt ifStatement() {
-		consume(LEFT_PAREN, "Expected '(' after 'if'.");
+		consume(LEFT_PAREN, "Expect '(' after 'if'.");
 		Expr condition = expression();
-		consume(RIGHT_PAREN, "Expected ')' after if condition.");
+		consume(RIGHT_PAREN, "Expect ')' after if condition.");
 
 		Stmt thenBranch = statement();
 		Stmt elseBranch = null;
@@ -118,9 +118,9 @@ class Parser {
 	}
 
 	private Stmt whileStatement() {
-		consume(LEFT_PAREN, "Expected '(' after 'while'.");
+		consume(LEFT_PAREN, "Expect '(' after 'while'.");
 		Expr condition = expression();
-		consume(RIGHT_PAREN, "Exprected ')' after condition.");
+		consume(RIGHT_PAREN, "Exprect ')' after condition.");
 		Stmt body = statement();
 
 		return new Stmt.While(condition, body);
@@ -143,20 +143,27 @@ class Parser {
 
 	private Stmt classDeclaration(){
 		Token name = consume(IDENTIFIER,"Expect class name.");
+
+		Expr.Variable superclass = null;
+		if(match(LESS)){
+			consume(IDENTIFIER, "Expect superclass name.");
+			superclass = new Expr.Variable(previous());
+		}
+
 		consume(LEFT_BRACE,"Expect '{' before class body.");
 
 		List<Stmt.Function> methods = new ArrayList<>();
-		while(!check(RIGHT_BRACE) && isAtEnd()){
+		while(!check(RIGHT_BRACE) && !isAtEnd()){
 			methods.add(function("method"));
 		}
 
 		consume(RIGHT_BRACE,"Expect '}' after class body.");
 
-		return new Stmt.Class(name, methods);
+		return new Stmt.Class(name, superclass, methods);
 	}
 
 	private Stmt.Function function(String kind) {
-		Token name = consume(IDENTIFIER, "Expected " + kind + " name.");
+		Token name = consume(IDENTIFIER, "Expect " + kind + " name.");
 		consume(LEFT_PAREN, "Expect '(' after " + kind + " name.");
 		List<Token> parameters = new ArrayList<>();
 		if (!check(RIGHT_PAREN)) {
@@ -177,14 +184,14 @@ class Parser {
 	}
 
 	private Stmt varDeclaration() {
-		Token name = consume(IDENTIFIER, "Expected variable name.");
+		Token name = consume(IDENTIFIER, "Expect variable name.");
 
 		Expr initializer = null;
 		if (match(EQUAL)) {
 			initializer = expression();
 		}
 
-		consume(SEMICOLON, "Expected ';' after variable declaration");
+		consume(SEMICOLON, "Expect ';' after variable declaration");
 		return new Stmt.Var(name, initializer);
 	}
 
@@ -196,7 +203,7 @@ class Parser {
 
 	private Stmt expressionStatement() {
 		Expr expr = expression();
-		consume(SEMICOLON, "Expected ';' after expression.");
+		consume(SEMICOLON, "Expect ';' after expression.");
 		return new Stmt.Expression(expr);
 	}
 
@@ -336,7 +343,7 @@ class Parser {
 			} while (match(COMMA));
 		}
 
-		Token paren = consume(RIGHT_PAREN, "Expected ')' after arguments.");
+		Token paren = consume(RIGHT_PAREN, "Expect ')' after arguments.");
 
 		return new Expr.Call(callee, paren, arguments);
 	}
@@ -351,6 +358,13 @@ class Parser {
 
 		if (match(NUMBER, STRING)) {
 			return new Expr.Literal(previous().literal);
+		}
+
+		if(match(SUPER)){
+			Token keyword = previous();
+			consume(DOT, "Expect '.'after 'super'.");
+			Token method = consume(IDENTIFIER, "Expect superclass method name.");
+			return new Expr.Super(keyword, method);
 		}
 
 		if(match(THIS)) return new Expr.This(previous());
@@ -376,7 +390,7 @@ class Parser {
 			statements.add(declaration());
 		}
 
-		consume(RIGHT_BRACE, "Expected '}' after block.");
+		consume(RIGHT_BRACE, "Expect '}' after block.");
 		return statements;
 	}
 
